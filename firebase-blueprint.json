@@ -1,0 +1,66 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile, primarily for teachers",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "role": { "type": "string", "enum": ["teacher", "student"] }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "Test": {
+      "title": "Test",
+      "description": "A quiz created by a teacher",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "duration": { "type": "number", "description": "Duration in minutes" },
+        "questionCount": { "type": "number" },
+        "status": { "type": "string", "enum": ["open", "closed"] },
+        "teacherId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "duration", "status", "teacherId"]
+    },
+    "Question": {
+      "title": "Question",
+      "description": "A multiple-choice question",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "testId": { "type": "string" },
+        "text": { "type": "string" },
+        "options": { "type": "array", "items": { "type": "string" } },
+        "correctAnswer": { "type": "number", "description": "Index of the correct option (0-3)" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["testId", "text", "options", "correctAnswer"]
+    },
+    "Submission": {
+      "title": "Submission",
+      "description": "A student's test submission",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "testId": { "type": "string" },
+        "studentName": { "type": "string" },
+        "studentId": { "type": "string" },
+        "score": { "type": "number" },
+        "answers": { "type": "array", "items": { "type": "number" } },
+        "submittedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["testId", "studentName", "studentId", "score", "answers"]
+    }
+  },
+  "firestore": {
+    "users": { "schema": "User", "description": "Collection of users" },
+    "tests": { "schema": "Test", "description": "Collection of tests" },
+    "tests/{testId}/questions": { "schema": "Question", "description": "Subcollection of questions for a test" },
+    "tests/{testId}/submissions": { "schema": "Submission", "description": "Subcollection of submissions for a test" }
+  }
+}
