@@ -21,7 +21,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
       <footer className="bg-white border-t border-slate-200 py-6">
         <div className="max-w-7xl mx-auto px-4 text-center text-slate-500 text-sm">
-          <p>Thiết kế và xây dựng: Trần Trung Hiếu</p>
+          <p>Thiết kế và xây dựng:Cao Chính Nghĩa và Trần Trung Hiếu</p>
           <p className="mt-1">&copy; {new Date().getFullYear()} AI Quiz System. All rights reserved.</p>
         </div>
       </footer>

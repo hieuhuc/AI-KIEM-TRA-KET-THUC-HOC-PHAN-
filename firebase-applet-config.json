@@ -1,9 +1,10 @@
 {
-  "projectId": "ai-kiem-tra-kthp",
-  "appId": "1:1046131944335:web:afa0be7c64aeec4ba9b9fa",
-  "apiKey": "AIzaSyArZ2veOjRoNCJEWeS2XV-aWX0neQvcpBs",
-  "authDomain": "ai-kiem-tra-kthp.firebaseapp.com",
-  "storageBucket": "ai-kiem-tra-kthp.firebasestorage.app",
-  "messagingSenderId": "1046131944335",
-  "measurementId": "G-MLEM9T9FHT"
+  "projectId": "gen-lang-client-0693572121",
+  "appId": "1:119532482121:web:12918afe5daf98b97a1998",
+  "apiKey": "AIzaSyDSNRrj4FC1fMtf_Dpj93YwHNVpm9FC9iE",
+  "authDomain": "gen-lang-client-0693572121.firebaseapp.com",
+  "firestoreDatabaseId": "ai-studio-64580a2b-b39a-4592-9557-da02ffb14c35",
+  "storageBucket": "gen-lang-client-0693572121.firebasestorage.app",
+  "messagingSenderId": "119532482121",
+  "measurementId": ""
 }
