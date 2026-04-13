@@ -1,5 +1,5 @@
 {
-  "name": "Prompt App Trắc nghiệm bản Final",
-  "description": "Ứng dụng kiểm tra trắc nghiệm trực tuyến cho sinh viên đại học, hỗ trợ tạo câu hỏi bằng AI và file Word.",
+  "name": "Hệ thống kiểm tra trắc nghiệm ứng dụng nền tảng AI",
+  "description": "Kiểm tra trắc nghiệm trực tuyến cho sinh viên Học viện Cảnh sát nhân dân",
   "requestFramePermissions": []
 }
