@@ -12,6 +12,7 @@ import { generateQuestions } from '../services/aiService';
 import mammoth from 'mammoth';
 import { QRCodeSVG } from 'qrcode.react';
 import * as XLSX from 'xlsx';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   PieChart, Pie, Cell, Legend 
@@ -37,6 +38,10 @@ export default function TestCreator({ user }: TestCreatorProps) {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiTopic, setAiTopic] = useState('');
   const [aiCount, setAiCount] = useState(5);
+  
+  const [pendingQuestions, setPendingQuestions] = useState<Question[]>([]);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [copied, setCopied] = useState(false);
@@ -152,7 +157,9 @@ export default function TestCreator({ user }: TestCreatorProps) {
         testId: testId || '',
         ...q
       }));
-      setQuestions([...questions, ...formattedQs]);
+      setPendingQuestions(formattedQs);
+      setSelectedIndices(new Set(formattedQs.map((_, i) => i)));
+      setShowImportModal(true);
       setAiTopic('');
     } catch (error) {
       console.error('AI Generation failed:', error);
@@ -203,8 +210,13 @@ export default function TestCreator({ user }: TestCreatorProps) {
           parsedQs.push(currentQ as Question);
         }
 
-        setQuestions([...questions, ...parsedQs]);
-        alert(`Đã nhập thành công ${parsedQs.length} câu hỏi.`);
+        if (parsedQs.length > 0) {
+          setPendingQuestions(parsedQs);
+          setSelectedIndices(new Set(parsedQs.map((_, i) => i)));
+          setShowImportModal(true);
+        } else {
+          alert('Không tìm thấy câu hỏi hợp lệ trong file.');
+        }
       } catch (error) {
         console.error('Word parsing failed:', error);
         alert('Lỗi khi đọc file Word. Vui lòng kiểm tra định dạng.');
@@ -232,6 +244,21 @@ export default function TestCreator({ user }: TestCreatorProps) {
     navigator.clipboard.writeText(url);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleConfirmImport = () => {
+    const selected = pendingQuestions.filter((_, i) => selectedIndices.has(i));
+    setQuestions([...questions, ...selected]);
+    setShowImportModal(false);
+    setPendingQuestions([]);
+    setSelectedIndices(new Set());
+  };
+
+  const toggleSelect = (index: number) => {
+    const newSet = new Set(selectedIndices);
+    if (newSet.has(index)) newSet.delete(index);
+    else newSet.add(index);
+    setSelectedIndices(newSet);
   };
 
   if (loading) return <div className="p-12 text-center">Đang tải...</div>;
@@ -281,6 +308,85 @@ export default function TestCreator({ user }: TestCreatorProps) {
           Lưu bài kiểm tra
         </button>
       </div>
+
+      <AnimatePresence>
+        {showImportModal && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-3xl w-full max-w-4xl max-h-[80vh] flex flex-col shadow-2xl overflow-hidden"
+            >
+              <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+                <div>
+                  <h3 className="text-xl font-bold text-slate-900">Chọn lọc câu hỏi nhập vào</h3>
+                  <p className="text-sm text-slate-500">Đã chọn {selectedIndices.size} / {pendingQuestions.length} câu hỏi</p>
+                </div>
+                <button 
+                  onClick={() => setShowImportModal(false)}
+                  className="p-2 hover:bg-slate-200 rounded-full transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              
+              <div className="flex-grow overflow-y-auto p-6 space-y-4">
+                {pendingQuestions.map((q, i) => (
+                  <div 
+                    key={i} 
+                    onClick={() => toggleSelect(i)}
+                    className={`p-4 rounded-2xl border-2 transition-all cursor-pointer ${
+                      selectedIndices.has(i) 
+                        ? 'border-indigo-500 bg-indigo-50/50' 
+                        : 'border-slate-100 bg-white hover:border-slate-200'
+                    }`}
+                  >
+                    <div className="flex gap-4">
+                      <div className={`w-6 h-6 rounded-md border-2 flex items-center justify-center shrink-0 transition-all ${
+                        selectedIndices.has(i) ? 'bg-indigo-600 border-indigo-600 text-white' : 'border-slate-300 bg-white'
+                      }`}>
+                        {selectedIndices.has(i) && <Check size={14} strokeWidth={3} />}
+                      </div>
+                      <div className="space-y-2">
+                        <p className="font-bold text-slate-900">{i + 1}. {q.text}</p>
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                          {q.options.map((opt, oIdx) => (
+                            <div key={oIdx} className={`text-sm ${q.correctAnswer === oIdx ? 'text-emerald-600 font-bold' : 'text-slate-500'}`}>
+                              {String.fromCharCode(65 + oIdx)}. {opt}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              <div className="p-6 border-t border-slate-100 flex justify-end gap-4 bg-slate-50">
+                <button 
+                  onClick={() => setShowImportModal(false)}
+                  className="px-6 py-2 text-slate-600 font-bold hover:bg-slate-200 rounded-xl transition-colors"
+                >
+                  Hủy bỏ
+                </button>
+                <button 
+                  onClick={handleConfirmImport}
+                  disabled={selectedIndices.size === 0}
+                  className="px-8 py-2 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 disabled:opacity-50 transition-all shadow-lg shadow-indigo-100"
+                >
+                  Thêm {selectedIndices.size} câu hỏi
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
         <div className="flex border-b border-slate-100 overflow-x-auto">
