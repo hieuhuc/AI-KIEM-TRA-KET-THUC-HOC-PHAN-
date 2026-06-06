@@ -1,0 +1,114 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: uid
+    // Fields:
+    //   - uid: string (required)
+    //   - email: string (required)
+    //   - displayName: string (optional)
+    //   - role: string (required, 'teacher' | 'student')
+    //
+    // Collection: tests
+    // Document ID: auto-generated
+    // Fields:
+    //   - title: string (required)
+    //   - duration: number (required)
+    //   - status: string (required, 'open' | 'closed')
+    //   - teacherId: string (required)
+    //   - createdAt: timestamp (required)
+    //
+    // Subcollection: tests/{testId}/questions
+    // Document ID: auto-generated
+    // Fields:
+    //   - text: string (required)
+    //   - options: list (required, 4 strings)
+    //   - correctAnswer: number (required, 0-3)
+    //
+    // Subcollection: tests/{testId}/submissions
+    // Document ID: auto-generated
+    // Fields:
+    //   - studentName: string (required)
+    //   - studentId: string (required)
+    //   - score: number (required)
+    //   - answers: list (required)
+    //   - submittedAt: timestamp (required)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+         (request.auth.token.email == "thanhhuong041295@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isTeacher() {
+      return isAuthenticated() && 
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher' || isAdmin());
+    }
+
+    function isTestOwner(testId) {
+      return isTeacher() && get(/databases/$(database)/documents/tests/$(testId)).data.teacherId == request.auth.uid;
+    }
+
+    function isValidTest(data) {
+      return data.title is string && data.title.size() > 0 && data.title.size() < 200 &&
+             data.duration is number && data.duration > 0 &&
+             data.status in ['open', 'closed'] &&
+             data.teacherId is string &&
+             data.createdAt is timestamp;
+    }
+
+    function isValidQuestion(data) {
+      return data.text is string && data.text.size() > 0 && data.text.size() < 2000 &&
+             data.options is list && data.options.size() == 4 &&
+             data.correctAnswer is number && data.correctAnswer >= 0 && data.correctAnswer <= 3;
+    }
+
+    function isValidSubmission(data) {
+      return data.studentName is string && data.studentName.size() > 0 && data.studentName.size() < 100 &&
+             data.studentId is string && data.studentId.size() > 0 && data.studentId.size() < 50 &&
+             data.score is number && data.score >= 0 &&
+             data.answers is list &&
+             data.submittedAt is timestamp;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      allow create, update: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+    }
+
+    match /tests/{testId} {
+      allow read: if true; // Everyone can read test metadata (to check if it exists and is open)
+      allow create: if isTeacher() && isValidTest(request.resource.data) && request.resource.data.teacherId == request.auth.uid;
+      allow update: if isTestOwner(testId) && isValidTest(request.resource.data) && request.resource.data.teacherId == resource.data.teacherId;
+      allow delete: if isTestOwner(testId);
+
+      match /questions/{questionId} {
+        allow read: if true; // Questions are readable if you have the test link
+        allow create, update: if isTestOwner(testId) && isValidQuestion(request.resource.data);
+        allow delete: if isTestOwner(testId);
+      }
+
+      match /submissions/{submissionId} {
+        allow read: if isTestOwner(testId);
+        allow create: if get(/databases/$(database)/documents/tests/$(testId)).data.status == 'open' && isValidSubmission(request.resource.data);
+      }
+    }
+  }
+}
